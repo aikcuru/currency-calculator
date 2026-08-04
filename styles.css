@@ -2099,6 +2099,26 @@ a:hover {
   }
 }
 
+@media (min-width: 721px) and (max-width: 900px) {
+  .converter-grid {
+    grid-template-columns: minmax(220px, 1fr) 58px minmax(220px, 1fr);
+  }
+
+  .converter-field--amount {
+    grid-column: 1 / -1;
+  }
+
+  .converter-field select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .swap-button {
+    justify-self: center;
+    min-width: 58px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
