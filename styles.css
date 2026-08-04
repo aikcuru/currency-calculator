@@ -319,12 +319,15 @@ select {
 
 .hero__title span:first-child {
   color: var(--text);
-  text-shadow: 0 14px 28px rgb(0 0 0 / 30%);
+  font-style: normal;
+  text-shadow: none;
 }
 
 .hero__title span:last-child {
-  margin-top: 0.08em;
+  margin-top: 0.14em;
   color: var(--red-bright);
+  font-size: 0.85em;
+  font-style: normal;
   text-shadow: 0 0 34px rgb(241 39 45 / 25%);
 }
 
@@ -1858,7 +1861,12 @@ a:hover {
 }
 
 .hero__title {
+  font-family: "Arial Black", "Segoe UI Black", "Arial", sans-serif;
   font-size: clamp(3.5rem, 6.8vw, 6.25rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  text-transform: none;
 }
 
 .hero__subtitle {
