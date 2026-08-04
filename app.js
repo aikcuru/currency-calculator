@@ -6,6 +6,9 @@ const currencyList = document.querySelector("#currency-list");
 const fromCurrencySelect = document.querySelector("#from-currency");
 const toCurrencySelect = document.querySelector("#to-currency");
 const rateCards = document.querySelector("#rate-cards");
+const selectedCurrencyChips = document.querySelector("#selected-currency-chips");
+const currencyPickerToggle = document.querySelector("#currency-picker-toggle");
+const currencyOptions = document.querySelector("#currency-options");
 
 let availableRates = new Map();
 let actualRateDate = "";
@@ -40,6 +43,98 @@ function createOption(currency, isSelected = false) {
   return option;
 }
 
+function setCurrencyMenuOpen(isOpen) {
+  currencyOptions.hidden = !isOpen;
+  currencyPickerToggle.setAttribute("aria-expanded", String(isOpen));
+}
+
+function updateCurrencySelection(code, isSelected) {
+  const option = Array.from(currencyList.options).find(
+    (currencyOption) => currencyOption.value === code,
+  );
+
+  if (!option) {
+    return;
+  }
+
+  option.selected = isSelected;
+  currencyList.dispatchEvent(new Event("change"));
+}
+
+function renderCurrencyOptions(currencies) {
+  const optionsFragment = document.createDocumentFragment();
+
+  currencies.forEach((currency) => {
+    const optionLabel = document.createElement("label");
+    optionLabel.className = "currency-option";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = currency.CharCode;
+    checkbox.dataset.currencyCode = currency.CharCode;
+    checkbox.checked = DEFAULT_CARD_CURRENCIES.has(currency.CharCode);
+    checkbox.addEventListener("change", () => {
+      updateCurrencySelection(currency.CharCode, checkbox.checked);
+    });
+
+    const code = document.createElement("span");
+    code.className = "currency-option__code";
+    code.textContent = currency.CharCode;
+
+    const name = document.createElement("span");
+    name.className = "currency-option__name";
+    name.textContent = currency.Name;
+
+    optionLabel.append(checkbox, code, name);
+    optionsFragment.append(optionLabel);
+  });
+
+  currencyOptions.replaceChildren(optionsFragment);
+}
+
+function renderSelectedCurrencyChips() {
+  const chipsFragment = document.createDocumentFragment();
+  const selectedOptions = Array.from(currencyList.selectedOptions);
+
+  if (selectedOptions.length === 0) {
+    const emptyMessage = document.createElement("span");
+    emptyMessage.className = "currency-picker__empty";
+    emptyMessage.textContent = "Валюты не выбраны";
+    chipsFragment.append(emptyMessage);
+  }
+
+  selectedOptions.forEach((option) => {
+    const chip = document.createElement("span");
+    chip.className = "currency-chip";
+    chip.textContent = option.value;
+
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.setAttribute("aria-label", `Удалить валюту ${option.value}`);
+    removeButton.textContent = "×";
+    removeButton.addEventListener("click", () => {
+      updateCurrencySelection(option.value, false);
+    });
+
+    chip.append(removeButton);
+    chipsFragment.append(chip);
+  });
+
+  selectedCurrencyChips.replaceChildren(chipsFragment);
+}
+
+function syncCurrencyPicker() {
+  const selectedCodes = new Set(
+    Array.from(currencyList.selectedOptions, (option) => option.value),
+  );
+
+  currencyOptions.querySelectorAll("input[data-currency-code]").forEach((checkbox) => {
+    checkbox.checked = selectedCodes.has(checkbox.dataset.currencyCode);
+  });
+
+  renderSelectedCurrencyChips();
+}
+
 function showRateMessage(message) {
   const status = document.createElement("p");
   status.className = "rate-status";
@@ -69,24 +164,55 @@ function formatResponseDate(dateValue) {
 
 function createRateCard(currency) {
   const card = document.createElement("article");
-  card.className = "rate-card";
+  const currencyCode = currency.CharCode.toLowerCase();
+  const accentCodes = new Set(["usd", "eur", "cny"]);
+  const accentClass = accentCodes.has(currencyCode)
+    ? `rate-card--${currencyCode}`
+    : "rate-card--default";
+  card.classList.add("rate-card", accentClass);
+
+  const header = document.createElement("div");
+  header.className = "rate-card__header";
+
+  const currencySymbols = {
+    USD: "$",
+    EUR: "€",
+    CNY: "¥",
+  };
+  const symbol = document.createElement("span");
+  symbol.className = "rate-card__symbol";
+  symbol.textContent = currencySymbols[currency.CharCode] || "¤";
+
+  const identity = document.createElement("div");
+  identity.className = "rate-card__identity";
 
   const code = document.createElement("h3");
+  code.className = "rate-card__code";
   code.textContent = currency.CharCode;
 
   const name = document.createElement("p");
+  name.className = "rate-card__name";
   name.textContent = currency.Name;
 
   const value = document.createElement("p");
+  value.className = "rate-card__value";
   value.textContent = `${formatNumber(currency.Value)} ₽`;
 
   const nominal = document.createElement("p");
+  nominal.className = "rate-card__nominal";
   nominal.textContent = `за ${currency.Nominal} ${currency.CharCode}`;
 
   const date = document.createElement("p");
+  date.className = "rate-card__date";
   date.textContent = `Дата курса: ${formatResponseDate(actualRateDate)}`;
 
-  card.append(code, name, value, nominal, date);
+  const chart = document.createElement("div");
+  chart.className = "rate-card__chart";
+  chart.setAttribute("aria-hidden", "true");
+
+  identity.append(code, name);
+  header.append(symbol, identity);
+  card.append(header, value, nominal, chart, date);
   return card;
 }
 
@@ -120,6 +246,8 @@ function fillCurrencyList(currencies) {
   );
 
   currencyList.replaceChildren(...options);
+  renderCurrencyOptions(currencies);
+  syncCurrencyPicker();
 }
 
 function fillConverterSelects(currencies) {
@@ -148,6 +276,8 @@ function resetLoadedData() {
   availableRates = new Map();
   actualRateDate = "";
   currencyList.replaceChildren();
+  currencyOptions.replaceChildren();
+  renderSelectedCurrencyChips();
   fromCurrencySelect.replaceChildren();
   toCurrencySelect.replaceChildren();
 }
@@ -222,7 +352,27 @@ async function loadRates(dateValue) {
   }
 }
 
-currencyList.addEventListener("change", renderSelectedRates);
+currencyList.addEventListener("change", () => {
+  syncCurrencyPicker();
+  renderSelectedRates();
+});
+
+currencyPickerToggle.addEventListener("click", () => {
+  setCurrencyMenuOpen(currencyOptions.hidden);
+});
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".currency-picker")) {
+    setCurrencyMenuOpen(false);
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !currencyOptions.hidden) {
+    setCurrencyMenuOpen(false);
+    currencyPickerToggle.focus();
+  }
+});
 
 dateInput.addEventListener("change", () => {
   if (dateInput.value) {

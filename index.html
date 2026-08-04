@@ -3,101 +3,197 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Валютный калькулятор на основе официальных курсов валют.">
+  <meta name="description" content="Валютный калькулятор на основе официальных курсов ЦБ РФ.">
   <title>Валютный калькулятор</title>
   <link rel="stylesheet" href="styles.css">
   <script src="app.js" defer></script>
 </head>
 <body>
-  <header class="page-header">
-    <div class="container">
-      <h1>Валютный калькулятор</h1>
+  <div class="market-backdrop" aria-hidden="true">
+    <div class="market-backdrop__grid"></div>
+    <div class="light-beams">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <div class="coin-group coin-group--left">
+      <img class="coin-group__image" alt="" aria-hidden="true" hidden>
+      <div class="coin-group__fallback">
+        <div class="coin coin--hero-left-back"><span>₽</span></div>
+        <div class="coin coin--hero-left"><span>₽</span></div>
+      </div>
+    </div>
+    <div class="coin-group coin-group--right">
+      <img class="coin-group__image" alt="" aria-hidden="true" hidden>
+      <div class="coin-group__fallback">
+        <div class="coin coin--hero-right"><span>₽</span></div>
+        <div class="coin coin--hero-right-low"><span>₽</span></div>
+        <div class="coin coin--hero-right-stack"><span>₽</span></div>
+      </div>
+    </div>
+    <div class="market-chart">
+      <span class="market-chart__candle market-chart__candle--1"></span>
+      <span class="market-chart__candle market-chart__candle--2"></span>
+      <span class="market-chart__candle market-chart__candle--3"></span>
+      <span class="market-chart__candle market-chart__candle--4"></span>
+      <span class="market-chart__line market-chart__line--1"></span>
+      <span class="market-chart__line market-chart__line--2"></span>
+      <span class="market-chart__line market-chart__line--3"></span>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="container hero__content">
+      <p class="hero__badge"><span></span>Курсы ЦБ РФ</p>
+      <h1 class="hero__title">
+        <span>Валютный</span>
+        <span>калькулятор</span>
+      </h1>
+      <p class="hero__subtitle">
+        Официальные курсы ЦБ РФ и быстрый пересчёт валют на выбранную дату
+      </p>
     </div>
   </header>
 
-  <main class="container">
-    <section class="date-section" aria-labelledby="date-heading">
-      <h2 id="date-heading">Дата курса</h2>
-      <label for="rate-date">Выберите дату</label>
-      <input type="date" id="rate-date" name="rate-date">
-    </section>
+  <main class="container page-main">
+    <section class="calculator-panel" aria-label="Рабочая область валютного калькулятора">
+      <span class="calculator-panel__highlight" aria-hidden="true"></span>
 
-    <section class="currency-selection" aria-labelledby="currency-heading">
-      <h2 id="currency-heading">Выбор валют</h2>
-      <label for="currency-list">Валюты для отображения</label>
-      <select id="currency-list" name="currency-list" multiple>
-        <option value="USD">Доллар США (USD)</option>
-        <option value="EUR">Евро (EUR)</option>
-        <option value="CNY">Китайский юань (CNY)</option>
-      </select>
-    </section>
+      <section class="panel-section date-section" aria-labelledby="date-heading">
+        <div class="section-intro">
+          <span class="section-icon section-icon--calendar" aria-hidden="true"></span>
+          <div>
+            <h2 id="date-heading">Дата курса</h2>
+            <p>Выберите дату курса</p>
+          </div>
+        </div>
+        <div class="date-section__control">
+          <label class="visually-hidden" for="rate-date">Выберите дату курса</label>
+          <input type="date" id="rate-date" name="rate-date">
+        </div>
+      </section>
 
-    <section class="rates-section" aria-labelledby="rates-heading">
-      <h2 id="rates-heading">Курсы валют</h2>
-      <div id="rate-cards" class="rate-cards" aria-live="polite">
-        <!-- Карточки курсов добавляются с помощью JavaScript. -->
-      </div>
-    </section>
-
-    <section class="converter" aria-labelledby="converter-heading">
-      <h2 id="converter-heading">Конвертер валют</h2>
-
-      <div class="converter-field">
-        <label for="amount">Сумма</label>
-        <input
-          type="number"
-          id="amount"
-          name="amount"
-          min="0"
-          step="any"
-          inputmode="decimal"
-          placeholder="Введите сумму"
-        >
-      </div>
-
-      <div class="converter-currencies">
-        <div class="converter-field">
-          <label for="from-currency">Из валюты</label>
-          <select id="from-currency" name="from-currency">
-            <option value="RUB">Российский рубль (RUB)</option>
-            <option value="USD">Доллар США (USD)</option>
-            <option value="EUR">Евро (EUR)</option>
-            <option value="CNY">Китайский юань (CNY)</option>
-          </select>
+      <section class="panel-section currency-section" aria-labelledby="currency-heading">
+        <div class="section-intro">
+          <span class="section-icon section-icon--currency" aria-hidden="true"></span>
+          <div>
+            <h2 id="currency-heading">Выбор валют</h2>
+            <p>Добавьте валюты для отображения курсов</p>
+          </div>
         </div>
 
-        <button
-          type="button"
-          id="swap-currencies"
-          class="swap-button"
-          aria-label="Поменять валюты местами"
-          title="Поменять валюты местами"
-        >
-          ⇄
-        </button>
-
-        <div class="converter-field">
-          <label for="to-currency">В валюту</label>
-          <select id="to-currency" name="to-currency">
-            <option value="USD">Доллар США (USD)</option>
-            <option value="RUB">Российский рубль (RUB)</option>
-            <option value="EUR">Евро (EUR)</option>
-            <option value="CNY">Китайский юань (CNY)</option>
-          </select>
+        <div class="currency-picker">
+          <div id="selected-currency-chips" class="currency-picker__chips" aria-live="polite"></div>
+          <button
+            type="button"
+            id="currency-picker-toggle"
+            class="currency-picker__toggle"
+            aria-expanded="false"
+            aria-controls="currency-options"
+          >
+            <span class="visually-hidden">Добавить валюту</span>
+            <span class="currency-picker__chevron" aria-hidden="true"></span>
+          </button>
+          <div id="currency-options" class="currency-picker__menu" hidden></div>
         </div>
-      </div>
 
-      <div class="result" aria-labelledby="result-heading" aria-live="polite">
-        <h3 id="result-heading">Результат</h3>
-        <output id="conversion-result" for="amount from-currency to-currency">—</output>
-      </div>
+        <label class="visually-hidden" for="currency-list">Выбранные валюты</label>
+        <select id="currency-list" name="currency-list" class="visually-hidden" multiple tabindex="-1" aria-hidden="true">
+          <option value="USD">Доллар США (USD)</option>
+          <option value="EUR">Евро (EUR)</option>
+          <option value="CNY">Китайский юань (CNY)</option>
+        </select>
+      </section>
+
+      <section class="rates-section" aria-labelledby="rates-heading">
+        <div class="content-heading">
+          <div>
+            <h2 id="rates-heading">Курсы валют</h2>
+            <p>Стоимость валют по отношению к российскому рублю</p>
+          </div>
+          <span class="live-badge"><span></span>Данные ЦБ РФ</span>
+        </div>
+        <div id="rate-cards" class="rate-cards" aria-live="polite">
+          <p class="rate-status">Загружаем курсы валют…</p>
+        </div>
+      </section>
+
+      <section class="converter-section" aria-labelledby="converter-heading">
+        <div class="content-heading content-heading--converter">
+          <span class="section-icon section-icon--converter" aria-hidden="true">⇄</span>
+          <div>
+            <h2 id="converter-heading">Конвертер</h2>
+            <p>Быстрый пересчёт валют</p>
+          </div>
+        </div>
+
+        <div class="converter-grid">
+          <div class="converter-field converter-field--amount">
+            <label for="amount">Сумма</label>
+            <input
+              type="number"
+              id="amount"
+              name="amount"
+              min="0"
+              step="any"
+              inputmode="decimal"
+              placeholder="Введите сумму"
+            >
+          </div>
+
+          <div class="converter-field">
+            <label for="from-currency">Из валюты</label>
+            <select id="from-currency" name="from-currency">
+              <option value="RUB">Российский рубль (RUB)</option>
+              <option value="USD">Доллар США (USD)</option>
+              <option value="EUR">Евро (EUR)</option>
+              <option value="CNY">Китайский юань (CNY)</option>
+            </select>
+          </div>
+
+          <button
+            type="button"
+            id="swap-currencies"
+            class="swap-button"
+            aria-label="Поменять валюты местами"
+            title="Поменять валюты местами"
+          >
+            ⇄
+          </button>
+
+          <div class="converter-field">
+            <label for="to-currency">В валюту</label>
+            <select id="to-currency" name="to-currency">
+              <option value="USD">Доллар США (USD)</option>
+              <option value="RUB">Российский рубль (RUB)</option>
+              <option value="EUR">Евро (EUR)</option>
+              <option value="CNY">Китайский юань (CNY)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="result" aria-labelledby="result-heading" aria-live="polite">
+          <div class="result__content">
+            <h3 id="result-heading">Результат</h3>
+            <output id="conversion-result" for="amount from-currency to-currency">—</output>
+            <p>Укажите сумму и выберите валюты для пересчёта</p>
+          </div>
+          <div class="result__decor" aria-hidden="true">
+            <span class="result__coin result__coin--back">₽</span>
+            <span class="result__coin result__coin--front">$</span>
+            <span class="result__calculator">
+              <i></i><i></i><i></i><i></i><i></i><i></i>
+            </span>
+          </div>
+        </div>
+      </section>
     </section>
   </main>
 
   <footer class="page-footer">
     <div class="container">
       <p>
-        Источник курсов:
+        Источник официальных курсов:
         <a href="https://www.cbr-xml-daily.ru/" target="_blank" rel="noopener noreferrer">
           cbr-xml-daily.ru
         </a>
