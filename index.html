@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Валютный калькулятор на основе официальных курсов валют.">
+  <title>Валютный калькулятор</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="page-header">
+    <div class="container">
+      <h1>Валютный калькулятор</h1>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="date-section" aria-labelledby="date-heading">
+      <h2 id="date-heading">Дата курса</h2>
+      <label for="rate-date">Выберите дату</label>
+      <input type="date" id="rate-date" name="rate-date">
+    </section>
+
+    <section class="currency-selection" aria-labelledby="currency-heading">
+      <h2 id="currency-heading">Выбор валют</h2>
+      <label for="currency-list">Валюты для отображения</label>
+      <select id="currency-list" name="currency-list" multiple>
+        <option value="USD">Доллар США (USD)</option>
+        <option value="EUR">Евро (EUR)</option>
+        <option value="CNY">Китайский юань (CNY)</option>
+      </select>
+    </section>
+
+    <section class="rates-section" aria-labelledby="rates-heading">
+      <h2 id="rates-heading">Курсы валют</h2>
+      <div id="rate-cards" class="rate-cards" aria-live="polite">
+        <!-- Карточки курсов добавляются с помощью JavaScript. -->
+      </div>
+    </section>
+
+    <section class="converter" aria-labelledby="converter-heading">
+      <h2 id="converter-heading">Конвертер валют</h2>
+
+      <div class="converter-field">
+        <label for="amount">Сумма</label>
+        <input
+          type="number"
+          id="amount"
+          name="amount"
+          min="0"
+          step="any"
+          inputmode="decimal"
+          placeholder="Введите сумму"
+        >
+      </div>
+
+      <div class="converter-currencies">
+        <div class="converter-field">
+          <label for="from-currency">Из валюты</label>
+          <select id="from-currency" name="from-currency">
+            <option value="RUB">Российский рубль (RUB)</option>
+            <option value="USD">Доллар США (USD)</option>
+            <option value="EUR">Евро (EUR)</option>
+            <option value="CNY">Китайский юань (CNY)</option>
+          </select>
+        </div>
+
+        <button
+          type="button"
+          id="swap-currencies"
+          class="swap-button"
+          aria-label="Поменять валюты местами"
+          title="Поменять валюты местами"
+        >
+          ⇄
+        </button>
+
+        <div class="converter-field">
+          <label for="to-currency">В валюту</label>
+          <select id="to-currency" name="to-currency">
+            <option value="USD">Доллар США (USD)</option>
+            <option value="RUB">Российский рубль (RUB)</option>
+            <option value="EUR">Евро (EUR)</option>
+            <option value="CNY">Китайский юань (CNY)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="result" aria-labelledby="result-heading" aria-live="polite">
+        <h3 id="result-heading">Результат</h3>
+        <output id="conversion-result" for="amount from-currency to-currency">—</output>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <div class="container">
+      <p>
+        Источник курсов:
+        <a href="https://www.cbr-xml-daily.ru/" target="_blank" rel="noopener noreferrer">
+          cbr-xml-daily.ru
+        </a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>
