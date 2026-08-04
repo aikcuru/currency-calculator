@@ -9,11 +9,115 @@ const rateCards = document.querySelector("#rate-cards");
 const selectedCurrencyChips = document.querySelector("#selected-currency-chips");
 const currencyPickerToggle = document.querySelector("#currency-picker-toggle");
 const currencyOptions = document.querySelector("#currency-options");
+const amountInput = document.querySelector("#amount");
+const swapCurrenciesButton = document.querySelector("#swap-currencies");
+const conversionResult = document.querySelector("#conversion-result");
+const conversionDetails = document.querySelector(".result__content p");
+
+const sourceAmountFormatter = new Intl.NumberFormat("ru-RU", {
+  maximumFractionDigits: 6,
+});
+const resultAmountFormatter = new Intl.NumberFormat("ru-RU", {
+  maximumFractionDigits: 4,
+});
 
 let availableRates = new Map();
 let actualRateDate = "";
 let activeRequestController = null;
 let requestNumber = 0;
+
+function getUnitRate(currencyCode) {
+  const currency = availableRates.get(currencyCode);
+
+  if (
+    !currency ||
+    !Number.isFinite(currency.Value) ||
+    !Number.isFinite(currency.Nominal) ||
+    currency.Nominal <= 0
+  ) {
+    return null;
+  }
+
+  return currency.Value / currency.Nominal;
+}
+
+function calculateConversion(amount, fromCurrencyCode, toCurrencyCode) {
+  const fromUnitRate = getUnitRate(fromCurrencyCode);
+  const toUnitRate = getUnitRate(toCurrencyCode);
+
+  if (fromUnitRate === null || toUnitRate === null || toUnitRate === 0) {
+    return null;
+  }
+
+  const amountInRubles = amount * fromUnitRate;
+  const result = amountInRubles / toUnitRate;
+
+  return Number.isFinite(result) ? result : null;
+}
+
+function setConversionResult(message, details) {
+  conversionResult.textContent = message;
+
+  if (conversionDetails) {
+    conversionDetails.textContent = details;
+  }
+}
+
+function updateConversionResult() {
+  if (availableRates.size === 0) {
+    setConversionResult(
+      "Курсы ещё не загружены",
+      "Выберите доступную дату курса для расчёта",
+    );
+    return;
+  }
+
+  const rawAmount = amountInput.value.trim();
+
+  if (rawAmount === "") {
+    setConversionResult(
+      "Введите сумму",
+      "Укажите сумму и выберите валюты для пересчёта",
+    );
+    return;
+  }
+
+  const amount = Number(rawAmount);
+
+  if (!Number.isFinite(amount) || amount < 0) {
+    setConversionResult(
+      "Введите корректную сумму",
+      "Допустимы ноль и положительные числа",
+    );
+    return;
+  }
+
+  const fromCurrencyCode = fromCurrencySelect.value;
+  const toCurrencyCode = toCurrencySelect.value;
+  const result = calculateConversion(
+    amount,
+    fromCurrencyCode,
+    toCurrencyCode,
+  );
+
+  if (result === null) {
+    setConversionResult(
+      "Не удалось выполнить расчёт",
+      "Проверьте выбранные валюты",
+    );
+    return;
+  }
+
+  const unitResult = calculateConversion(
+    1,
+    fromCurrencyCode,
+    toCurrencyCode,
+  );
+  const resultText = `${sourceAmountFormatter.format(amount)} ${fromCurrencyCode} = ${resultAmountFormatter.format(result)} ${toCurrencyCode}`;
+  const detailsText = `1 ${fromCurrencyCode} = ${resultAmountFormatter.format(unitResult)} ${toCurrencyCode}`;
+
+  setConversionResult(resultText, detailsText);
+}
 
 function formatLocalDate(date) {
   const year = String(date.getFullYear()).padStart(4, "0");
@@ -280,6 +384,7 @@ function resetLoadedData() {
   renderSelectedCurrencyChips();
   fromCurrencySelect.replaceChildren();
   toCurrencySelect.replaceChildren();
+  updateConversionResult();
 }
 
 function getCurrencies(responseData) {
@@ -335,6 +440,7 @@ async function loadRates(dateValue) {
     fillCurrencyList(currencies);
     fillConverterSelects(currencies);
     renderSelectedRates();
+    updateConversionResult();
   } catch (error) {
     if (error.name === "AbortError" || currentRequestNumber !== requestNumber) {
       return;
@@ -378,6 +484,17 @@ dateInput.addEventListener("change", () => {
   if (dateInput.value) {
     loadRates(dateInput.value);
   }
+});
+
+amountInput.addEventListener("input", updateConversionResult);
+fromCurrencySelect.addEventListener("change", updateConversionResult);
+toCurrencySelect.addEventListener("change", updateConversionResult);
+
+swapCurrenciesButton.addEventListener("click", () => {
+  const fromCurrencyCode = fromCurrencySelect.value;
+  fromCurrencySelect.value = toCurrencySelect.value;
+  toCurrencySelect.value = fromCurrencyCode;
+  updateConversionResult();
 });
 
 const today = formatLocalDate(new Date());
