@@ -34,6 +34,7 @@ let availableRates = new Map();
 let actualRateDate = "";
 let activeRequestController = null;
 let requestNumber = 0;
+let selectedCardCurrencyCodes = null;
 
 function getUnitRate(currencyCode) {
   const currency = availableRates.get(currencyCode);
@@ -236,7 +237,7 @@ function updateCurrencySelection(code, isSelected) {
   currencyList.dispatchEvent(new Event("change"));
 }
 
-function renderCurrencyOptions(currencies) {
+function renderCurrencyOptions(currencies, selectedCodes) {
   const optionsFragment = document.createDocumentFragment();
 
   currencies.forEach((currency) => {
@@ -247,7 +248,7 @@ function renderCurrencyOptions(currencies) {
     checkbox.type = "checkbox";
     checkbox.value = currency.CharCode;
     checkbox.dataset.currencyCode = currency.CharCode;
-    checkbox.checked = DEFAULT_CARD_CURRENCIES.has(currency.CharCode);
+    checkbox.checked = selectedCodes.has(currency.CharCode);
     checkbox.addEventListener("change", () => {
       updateCurrencySelection(currency.CharCode, checkbox.checked);
     });
@@ -308,6 +309,53 @@ function syncCurrencyPicker() {
   });
 
   renderSelectedCurrencyChips();
+}
+
+function saveSelectedCurrencyCodes() {
+  selectedCardCurrencyCodes = new Set(
+    Array.from(currencyList.selectedOptions, (option) => option.value),
+  );
+}
+
+function getDefaultSelectedCurrencyCodes(currencies) {
+  const availableCodes = new Set(
+    currencies.map((currency) => currency.CharCode),
+  );
+  const selectedCodes = new Set(
+    Array.from(DEFAULT_CARD_CURRENCIES).filter((code) =>
+      availableCodes.has(code),
+    ),
+  );
+
+  for (const currency of currencies) {
+    if (selectedCodes.size >= 3) {
+      break;
+    }
+
+    selectedCodes.add(currency.CharCode);
+  }
+
+  return selectedCodes;
+}
+
+function restoreSelectedCurrencyCodes(currencies) {
+  const availableCodes = new Set(
+    currencies.map((currency) => currency.CharCode),
+  );
+  const restoredCodes = new Set(
+    selectedCardCurrencyCodes === null
+      ? []
+      : Array.from(selectedCardCurrencyCodes).filter((code) =>
+          availableCodes.has(code),
+        ),
+  );
+
+  selectedCardCurrencyCodes =
+    restoredCodes.size > 0
+      ? restoredCodes
+      : getDefaultSelectedCurrencyCodes(currencies);
+
+  return selectedCardCurrencyCodes;
 }
 
 function showRateMessage(message) {
@@ -412,12 +460,13 @@ function renderSelectedRates() {
 }
 
 function fillCurrencyList(currencies) {
+  const selectedCodes = restoreSelectedCurrencyCodes(currencies);
   const options = currencies.map((currency) =>
-    createOption(currency, DEFAULT_CARD_CURRENCIES.has(currency.CharCode)),
+    createOption(currency, selectedCodes.has(currency.CharCode)),
   );
 
   currencyList.replaceChildren(...options);
-  renderCurrencyOptions(currencies);
+  renderCurrencyOptions(currencies, selectedCodes);
   syncCurrencyPicker();
 }
 
@@ -549,6 +598,7 @@ async function loadRates(dateValue) {
 }
 
 currencyList.addEventListener("change", () => {
+  saveSelectedCurrencyCodes();
   syncCurrencyPicker();
   renderSelectedRates();
 });
