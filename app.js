@@ -1,7 +1,11 @@
 const API_ARCHIVE_BASE_URL = "https://www.cbr-xml-daily.ru/archive";
 const DEFAULT_CARD_CURRENCIES = new Set(["USD", "EUR", "CNY"]);
+const REQUEST_TIMEOUT_MS = 10_000;
 
 const dateInput = document.querySelector("#rate-date");
+const previousDateButton = document.querySelector("#previous-date");
+const nextDateButton = document.querySelector("#next-date");
+const rateDateInfo = document.querySelector("#rate-date-info");
 const currencyList = document.querySelector("#currency-list");
 const fromCurrencySelect = document.querySelector("#from-currency");
 const toCurrencySelect = document.querySelector("#to-currency");
@@ -19,6 +23,11 @@ const sourceAmountFormatter = new Intl.NumberFormat("ru-RU", {
 });
 const resultAmountFormatter = new Intl.NumberFormat("ru-RU", {
   maximumFractionDigits: 4,
+});
+const readableDateFormatter = new Intl.DateTimeFormat("ru-RU", {
+  day: "2-digit",
+  month: "long",
+  year: "numeric",
 });
 
 let availableRates = new Map();
@@ -125,6 +134,68 @@ function formatLocalDate(date) {
   const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+function parseLocalDate(dateValue) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
+
+  if (!match) {
+    throw new Error("Некорректная дата");
+  }
+
+  const [, yearValue, monthValue, dayValue] = match;
+  const year = Number(yearValue);
+  const monthIndex = Number(monthValue) - 1;
+  const day = Number(dayValue);
+  const date = new Date(year, monthIndex, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== monthIndex ||
+    date.getDate() !== day
+  ) {
+    throw new Error("Некорректная дата");
+  }
+
+  return date;
+}
+
+function shiftCalendarDate(dateValue, dayOffset) {
+  const date = parseLocalDate(dateValue);
+  date.setDate(date.getDate() + dayOffset);
+
+  return formatLocalDate(date);
+}
+
+function updateDateNavigationState() {
+  nextDateButton.disabled =
+    !dateInput.value || dateInput.value >= dateInput.max;
+}
+
+function updateRateDateInfo(state = "selected") {
+  if (state === "timeout") {
+    rateDateInfo.textContent =
+      "Не удалось получить данные: превышено время ожидания.";
+    return;
+  } else if (state === "error") {
+    rateDateInfo.textContent = "Архив за эту дату недоступен.";
+    return;
+  }
+
+  rateDateInfo.textContent = "";
+}
+
+function changeSelectedDate(dayOffset) {
+  const nextDateValue = shiftCalendarDate(dateInput.value, dayOffset);
+
+  if (nextDateValue > dateInput.max) {
+    return;
+  }
+
+  dateInput.value = nextDateValue;
+  updateDateNavigationState();
+  updateRateDateInfo();
+  loadRates(nextDateValue);
 }
 
 function buildArchiveUrl(dateValue) {
@@ -259,11 +330,7 @@ function formatResponseDate(dateValue) {
     return dateValue;
   }
 
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(date);
+  return readableDateFormatter.format(date);
 }
 
 function createRateCard(currency) {
@@ -407,9 +474,15 @@ async function loadRates(dateValue) {
 
   const controller = new AbortController();
   const currentRequestNumber = ++requestNumber;
+  let timeoutReached = false;
+  const timeoutId = setTimeout(() => {
+    timeoutReached = true;
+    controller.abort();
+  }, REQUEST_TIMEOUT_MS);
   activeRequestController = controller;
 
   resetLoadedData();
+  updateRateDateInfo();
   showRateMessage("Загружаем курсы валют…");
 
   try {
@@ -441,17 +514,34 @@ async function loadRates(dateValue) {
     fillConverterSelects(currencies);
     renderSelectedRates();
     updateConversionResult();
+    updateRateDateInfo("success");
   } catch (error) {
-    if (error.name === "AbortError" || currentRequestNumber !== requestNumber) {
+    if (currentRequestNumber !== requestNumber) {
+      return;
+    }
+
+    if (timeoutReached) {
+      resetLoadedData();
+      showRateMessage(
+        "Сервис курсов временно не отвечает. Попробуйте ещё раз или выберите другую дату.",
+      );
+      updateRateDateInfo("timeout");
+      return;
+    }
+
+    if (error.name === "AbortError") {
       return;
     }
 
     resetLoadedData();
     showRateMessage(
-      "Не удалось загрузить курсы на выбранную дату. Проверьте дату и подключение к интернету.",
+      "Архив за выбранную дату недоступен. Выберите предыдущий рабочий день.",
     );
-    console.error("Ошибка загрузки курсов валют:", error);
+    updateRateDateInfo("error");
+    console.warn("Не удалось загрузить архив курсов валют:", error);
   } finally {
+    clearTimeout(timeoutId);
+
     if (activeRequestController === controller) {
       activeRequestController = null;
     }
@@ -482,8 +572,22 @@ document.addEventListener("keydown", (event) => {
 
 dateInput.addEventListener("change", () => {
   if (dateInput.value) {
+    if (dateInput.value > dateInput.max) {
+      dateInput.value = dateInput.max;
+    }
+
+    updateDateNavigationState();
+    updateRateDateInfo();
     loadRates(dateInput.value);
   }
+});
+
+previousDateButton.addEventListener("click", () => {
+  changeSelectedDate(-1);
+});
+
+nextDateButton.addEventListener("click", () => {
+  changeSelectedDate(1);
 });
 
 amountInput.addEventListener("input", updateConversionResult);
@@ -500,4 +604,6 @@ swapCurrenciesButton.addEventListener("click", () => {
 const today = formatLocalDate(new Date());
 dateInput.max = today;
 dateInput.value = today;
+updateDateNavigationState();
+updateRateDateInfo();
 loadRates(today);
